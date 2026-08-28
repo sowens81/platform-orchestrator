@@ -1,0 +1,21 @@
+apiVersion: platform-orchestrator/v1
+kind: RepositoryTemplate
+
+metadata:
+  name: react-app
+  displayName: React Application
+  description: Production-ready React frontend application
+  version: "1.0.0"
+
+spec:
+  requiredValues:
+    - name: SERVICE_NAME
+      description: Name of the application
+      example: customer-portal
+
+    - name: PACKAGE_NAME
+      description: npm package name
+      example: customer-portal
+
+  pipeline:
+    path: /.azuredevops/azure-pipelines.yml

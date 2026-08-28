@@ -1,0 +1,102 @@
+basePath: /
+definitions:
+  api.ErrorResponse:
+    properties:
+      error:
+        example: invalid request
+        type: string
+    type: object
+  api.HealthResponse:
+    properties:
+      status:
+        example: healthy
+        type: string
+    type: object
+  repository.CreateRequest:
+    properties:
+      project:
+        type: string
+      repositoryName:
+        type: string
+      template:
+        type: string
+      values:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  repository.CreateResult:
+    properties:
+      pipeline:
+        $ref: '#/definitions/repository.PipelineResult'
+      repository:
+        $ref: '#/definitions/repository.RepositoryResult'
+    type: object
+  repository.PipelineResult:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  repository.RepositoryResult:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for provisioning application repositories and associated Azure
+    DevOps resources.
+  title: Platform Orchestrator API
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      description: Returns the current health of the Platform Orchestrator API.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+  /v1/repositories:
+    post:
+      consumes:
+      - application/json
+      description: Creates an Azure DevOps repository from a template, pushes the
+        rendered files, and creates the associated YAML pipeline.
+      parameters:
+      - description: Repository creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/repository.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/repository.CreateResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Create a repository
+      tags:
+      - repositories
+swagger: "2.0"

@@ -1,0 +1,21 @@
+apiVersion: platform-orchestrator/v1
+kind: RepositoryTemplate
+
+metadata:
+  name: dotnet-api
+  displayName: .NET API
+  description: Production-ready ASP.NET Core API service
+  version: "1.0.0"
+
+spec:
+  requiredValues:
+    - name: SERVICE_NAME
+      description: Name of the service
+      example: payments-api
+
+    - name: NAMESPACE
+      description: Root .NET namespace for the application
+      example: Company.Payments
+
+  pipeline:
+    path: /.azuredevops/azure-pipelines.yml
