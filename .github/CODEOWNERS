@@ -1,0 +1,87 @@
+# ============================================================
+# Default Code Owner
+# ============================================================
+
+* @sowens81
+
+
+# ============================================================
+# GitHub / CI
+# ============================================================
+
+.github/ @sowens81
+
+.github/workflows/ @sowens81
+
+
+# ============================================================
+# Azure DevOps
+# ============================================================
+
+azure-pipelines.yml @sowens81
+
+azure-pipelines.yaml @sowens81
+
+pipelines/ @sowens81
+
+
+# ============================================================
+# Infrastructure
+# ============================================================
+
+*.tf @sowens81
+
+terraform/ @sowens81
+
+infrastructure/ @sowens81
+
+infra/ @sowens81
+
+
+# ============================================================
+# Kubernetes / Helm
+# ============================================================
+
+kubernetes/ @sowens81
+
+k8s/ @sowens81
+
+helm/ @sowens81
+
+charts/ @sowens81
+
+
+# ============================================================
+# Containers
+# ============================================================
+
+Dockerfile @sowens81
+
+Dockerfile.* @sowens81
+
+docker-compose.yml @sowens81
+
+docker-compose.yaml @sowens81
+
+
+# ============================================================
+# Security / Repository Governance
+# ============================================================
+
+/CODEOWNERS @sowens81
+
+/SECURITY.md @sowens81
+
+/CODE_OF_CONDUCT.md @sowens81
+
+/CONTRIBUTING.md @sowens81
+
+/LICENSE @sowens81
+
+/.gitignore @sowens81
+
+/.dockerignore @sowens81
+
+/.gitattributes @sowens81
+
+/.editorconfig @sowens81
