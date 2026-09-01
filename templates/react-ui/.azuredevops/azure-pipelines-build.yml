@@ -1,0 +1,19 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+
+  - script: |
+      echo "Building __SERVICE_NAME__"
+    displayName: Build __SERVICE_NAME__

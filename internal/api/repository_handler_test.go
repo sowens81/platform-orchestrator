@@ -53,7 +53,7 @@ func validResult() *repository.CreateResult {
 		},
 		Pipeline: repository.PipelineResult{
 			ID:   42,
-			Name: "payments-api-ci",
+			Name: "payments-api-build",
 		},
 	}
 }

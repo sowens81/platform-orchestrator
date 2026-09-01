@@ -57,10 +57,13 @@ func main() {
 		templateRoot,
 	)
 
+	registrationStore := repository.NewInMemoryServiceRegistrationStore()
+
 	repositoryService := repository.NewService(
 		templateService,
 		azureDevOpsClient,
 		azureDevOpsClient,
+		registrationStore,
 	)
 
 	repositoryHandler := api.NewRepositoryHandler(

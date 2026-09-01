@@ -47,7 +47,7 @@ func TestClient_CreatePipeline(t *testing.T) {
 				)
 			}
 
-			if body.Name != "payments-api-ci" {
+			if body.Name != "payments-api-build" {
 				t.Errorf(
 					"name = %q",
 					body.Name,
@@ -92,7 +92,7 @@ func TestClient_CreatePipeline(t *testing.T) {
 			_, _ = w.Write(
 				[]byte(`{
 					"id":42,
-					"name":"payments-api-ci"
+					"name":"payments-api-build"
 				}`),
 			)
 		}),
@@ -111,7 +111,7 @@ func TestClient_CreatePipeline(t *testing.T) {
 		context.Background(),
 		"PlatformEngineering",
 		"repo-123",
-		"payments-api-ci",
+		"payments-api-build",
 		"/.azuredevops/azure-pipelines.yml",
 	)
 	if err != nil {
@@ -128,7 +128,7 @@ func TestClient_CreatePipeline(t *testing.T) {
 		)
 	}
 
-	if result.Name != "payments-api-ci" {
+	if result.Name != "payments-api-build" {
 		t.Errorf(
 			"name = %q",
 			result.Name,
@@ -159,7 +159,7 @@ func TestClient_CreatePipeline_UsesStableAPIVersion(t *testing.T) {
 			_, _ = w.Write(
 				[]byte(`{
 					"id":42,
-					"name":"payments-api-ci"
+					"name":"payments-api-build"
 				}`),
 			)
 		}),
@@ -178,7 +178,7 @@ func TestClient_CreatePipeline_UsesStableAPIVersion(t *testing.T) {
 		context.Background(),
 		"PlatformEngineering",
 		"repo-123",
-		"payments-api-ci",
+		"payments-api-build",
 		"/.azuredevops/azure-pipelines.yml",
 	)
 	if err != nil {
@@ -215,7 +215,7 @@ func TestClient_CreatePipeline_EncodesProjectName(t *testing.T) {
 			_, _ = w.Write(
 				[]byte(`{
 					"id":42,
-					"name":"payments-api-ci"
+					"name":"payments-api-build"
 				}`),
 			)
 		}),
@@ -234,7 +234,7 @@ func TestClient_CreatePipeline_EncodesProjectName(t *testing.T) {
 		context.Background(),
 		"Platform Engineering",
 		"repo-123",
-		"payments-api-ci",
+		"payments-api-build",
 		"/.azuredevops/azure-pipelines.yml",
 	)
 	if err != nil {
@@ -274,7 +274,7 @@ func TestClient_CreatePipeline_ReturnsAzureDevOpsErrorBody(
 		context.Background(),
 		"PlatformEngineering",
 		"repo-123",
-		"payments-api-ci",
+		"payments-api-build",
 		"/.azuredevops/azure-pipelines.yml",
 	)
 
@@ -310,7 +310,7 @@ func TestClient_CreatePipeline_ReturnsErrorWhenResponseHasNoID(
 
 			_, _ = w.Write(
 				[]byte(`{
-					"name":"payments-api-ci"
+					"name":"payments-api-build"
 				}`),
 			)
 		}),
@@ -329,7 +329,7 @@ func TestClient_CreatePipeline_ReturnsErrorWhenResponseHasNoID(
 		context.Background(),
 		"PlatformEngineering",
 		"repo-123",
-		"payments-api-ci",
+		"payments-api-build",
 		"/.azuredevops/azure-pipelines.yml",
 	)
 
@@ -381,7 +381,7 @@ func TestClient_CreatePipeline_ReturnsErrorWhenResponseHasNoName(
 		context.Background(),
 		"PlatformEngineering",
 		"repo-123",
-		"payments-api-ci",
+		"payments-api-build",
 		"/.azuredevops/azure-pipelines.yml",
 	)
 

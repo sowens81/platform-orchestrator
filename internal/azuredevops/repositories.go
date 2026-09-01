@@ -186,4 +186,101 @@ func (c *Client) CreateRepository(
 	}, nil
 }
 
+func (c *Client) BranchExists(
+	ctx context.Context,
+	project string,
+	repositoryID string,
+	branch string,
+) (bool, error) {
+	token, err := c.tokenProvider.Token(ctx)
+	if err != nil {
+		return false, fmt.Errorf(
+			"get access token: %w",
+			err,
+		)
+	}
+
+	requestURL := fmt.Sprintf(
+		"%s/%s/_apis/git/repositories/%s/refs",
+		c.baseURL,
+		url.PathEscape(project),
+		url.PathEscape(repositoryID),
+	)
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		requestURL,
+		nil,
+	)
+	if err != nil {
+		return false, fmt.Errorf(
+			"create branch lookup request: %w",
+			err,
+		)
+	}
+
+	query := req.URL.Query()
+	query.Set(
+		"filter",
+		"heads/"+branch,
+	)
+	query.Set(
+		"api-version",
+		"7.1",
+	)
+	req.URL.RawQuery = query.Encode()
+
+	req.Header.Set(
+		"Authorization",
+		"Bearer "+token,
+	)
+	req.Header.Set(
+		"Accept",
+		"application/json",
+	)
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf(
+			"branch lookup request: %w",
+			err,
+		)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(res.Body)
+
+		return false, fmt.Errorf(
+			"branch lookup failed: status %d: %s",
+			res.StatusCode,
+			string(body),
+		)
+	}
+
+	var response struct {
+		Value []struct {
+			Name string `json:"name"`
+		} `json:"value"`
+	}
+
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		return false, fmt.Errorf(
+			"decode branch lookup response: %w",
+			err,
+		)
+	}
+
+	expectedRef := "refs/heads/" + branch
+
+	for _, ref := range response.Value {
+		if ref.Name == expectedRef {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 var _ repository.RepositoryProvider = (*Client)(nil)

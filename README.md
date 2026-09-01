@@ -203,7 +203,7 @@ Example response:
   },
   "pipeline": {
     "id": 123,
-    "name": "payments-api-ci"
+    "name": "payments-api-build"
   }
 }
 ```

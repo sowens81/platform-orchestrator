@@ -26,13 +26,18 @@ type TemplateMetadataDetails struct {
 
 type TemplateSpec struct {
 	RequiredValues []TemplateRequiredValue `yaml:"requiredValues"`
-	Pipeline       TemplatePipeline        `yaml:"pipeline"`
+	Pipelines      TemplatePipelines       `yaml:"pipelines"`
 }
 
 type TemplateRequiredValue struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 	Example     string `yaml:"example"`
+}
+
+type TemplatePipelines struct {
+	Build   TemplatePipeline `yaml:"build"`
+	Release TemplatePipeline `yaml:"release"`
 }
 
 type TemplatePipeline struct {

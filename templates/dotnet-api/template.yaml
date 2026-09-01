@@ -17,5 +17,9 @@ spec:
       description: Root .NET namespace for the application
       example: Company.Payments
 
-  pipeline:
-    path: /.azuredevops/azure-pipelines.yml
+pipelines:
+  build:
+    path: /.azuredevops/azure-pipelines-build.yml
+
+  release:
+    path: /.azuredevops/azure-pipelines-release.yml

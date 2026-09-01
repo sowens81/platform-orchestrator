@@ -21,7 +21,7 @@ func NewService(
 func (s *Service) Load(
 	name string,
 	values map[string]string,
-) ([]TemplateFile, error) {
+) (RenderedTemplate, error) {
 	templateRoot := filepath.Join(
 		s.root,
 		name,
@@ -31,7 +31,7 @@ func (s *Service) Load(
 		templateRoot,
 	)
 	if err != nil {
-		return nil, fmt.Errorf(
+		return RenderedTemplate{}, fmt.Errorf(
 			"open template %q: %w",
 			name,
 			err,
@@ -39,7 +39,7 @@ func (s *Service) Load(
 	}
 
 	if !info.IsDir() {
-		return nil, fmt.Errorf(
+		return RenderedTemplate{}, fmt.Errorf(
 			"template %q is not a directory",
 			name,
 		)
@@ -49,7 +49,7 @@ func (s *Service) Load(
 		templateRoot,
 	)
 	if err != nil {
-		return nil, fmt.Errorf(
+		return RenderedTemplate{}, fmt.Errorf(
 			"load template %q metadata: %w",
 			name,
 			err,
@@ -60,14 +60,14 @@ func (s *Service) Load(
 		name,
 		metadata,
 	); err != nil {
-		return nil, err
+		return RenderedTemplate{}, err
 	}
 
 	if err := validateRequiredValues(
 		metadata,
 		values,
 	); err != nil {
-		return nil, err
+		return RenderedTemplate{}, err
 	}
 
 	files, err := loadTemplateDirectory(
@@ -75,12 +75,15 @@ func (s *Service) Load(
 		values,
 	)
 	if err != nil {
-		return nil, fmt.Errorf(
+		return RenderedTemplate{}, fmt.Errorf(
 			"load template %q: %w",
 			name,
 			err,
 		)
 	}
 
-	return files, nil
+	return RenderedTemplate{
+		Metadata: *metadata,
+		Files:    files,
+	}, nil
 }

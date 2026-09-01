@@ -18,7 +18,7 @@ type TemplateService interface {
 	Load(
 		name string,
 		values map[string]string,
-	) ([]templatepkg.TemplateFile, error)
+	) (templatepkg.RenderedTemplate, error)
 }
 
 type RepositoryProvider interface {
@@ -33,6 +33,13 @@ type RepositoryProvider interface {
 		project string,
 		name string,
 	) (Repository, error)
+
+	BranchExists(
+		ctx context.Context,
+		project string,
+		repositoryID string,
+		branch string,
+	) (bool, error)
 
 	PushFiles(
 		ctx context.Context,
@@ -54,20 +61,23 @@ type PipelineProvider interface {
 }
 
 type Service struct {
-	templates    TemplateService
-	repositories RepositoryProvider
-	pipelines    PipelineProvider
+	templates         TemplateService
+	repositories      RepositoryProvider
+	pipelines         PipelineProvider
+	registrationStore ServiceRegistrationStore
 }
 
 func NewService(
 	templates TemplateService,
 	repositories RepositoryProvider,
 	pipelines PipelineProvider,
+	registrationStore ServiceRegistrationStore,
 ) *Service {
 	return &Service{
-		templates:    templates,
-		repositories: repositories,
-		pipelines:    pipelines,
+		templates:         templates,
+		repositories:      repositories,
+		pipelines:         pipelines,
+		registrationStore: registrationStore,
 	}
 }
 
@@ -75,17 +85,19 @@ func (s *Service) Create(
 	ctx context.Context,
 	req CreateRequest,
 ) (*CreateResult, error) {
-	files, err := s.templates.Load(
+	rendered, err := s.templates.Load(
 		req.Template,
 		req.Values,
 	)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"load repository template %q: %w",
+			"load template %q: %w",
 			req.Template,
 			err,
 		)
 	}
+
+	files := rendered.Files
 
 	if len(files) == 0 {
 		return nil, fmt.Errorf(
@@ -144,64 +156,119 @@ func (s *Service) Create(
 		)
 	}
 
-	repo, exists, err := s.repositories.GetRepository(
+	registration, registrationExists, err := s.registrationStore.Get(
 		ctx,
 		req.Project,
 		req.RepositoryName,
 	)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"get repository %q: %w",
+			"get service registration %q: %w",
 			req.RepositoryName,
 			err,
 		)
 	}
 
-	if !exists {
-		repo, err = s.repositories.CreateRepository(
+	var repo Repository
+
+	if registrationExists &&
+		registration.RepositoryID != "" {
+
+		repo = Repository{
+			ID:   registration.RepositoryID,
+			Name: registration.RepositoryName,
+		}
+	} else {
+		var exists bool
+
+		repo, exists, err = s.repositories.GetRepository(
 			ctx,
 			req.Project,
 			req.RepositoryName,
 		)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"create repository %q: %w",
+				"get repository %q: %w",
 				req.RepositoryName,
 				err,
 			)
 		}
+
+		if !exists {
+			repo, err = s.repositories.CreateRepository(
+				ctx,
+				req.Project,
+				req.RepositoryName,
+			)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"create repository %q: %w",
+					req.RepositoryName,
+					err,
+				)
+			}
+		}
 	}
 
-	err = s.repositories.PushFiles(
+	branchExists, err := s.repositories.BranchExists(
+
 		ctx,
 		req.Project,
 		repo.ID,
 		defaultBranch,
-		files,
 	)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"push files to repository %q: %w",
+			"check branch %q in repository %q: %w",
+			defaultBranch,
 			req.RepositoryName,
 			err,
 		)
 	}
 
-	pipelineName := req.RepositoryName + "-ci"
+	if !branchExists {
 
-	pipeline, err := s.pipelines.CreatePipeline(
-		ctx,
-		req.Project,
-		repo.ID,
-		pipelineName,
-		pipelineYamlPath,
-	)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"create pipeline %q: %w",
-			pipelineName,
-			err,
+		err = s.repositories.PushFiles(
+			ctx,
+			req.Project,
+			repo.ID,
+			defaultBranch,
+			files,
 		)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"push files to repository %q: %w",
+				req.RepositoryName,
+				err,
+			)
+		}
+
+	}
+
+	var pipeline Pipeline
+
+	if registrationExists &&
+		registration.BuildPipelineID != 0 {
+
+		pipeline = Pipeline{
+			ID:   registration.BuildPipelineID,
+			Name: registration.BuildPipelineName,
+		}
+	} else {
+		pipeline, err = s.pipelines.CreatePipeline(
+			ctx,
+			req.Project,
+			repo.ID,
+			buildPipelineName(req.RepositoryName),
+			pipelineYamlPath,
+		)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"create build pipeline for repository %q: %w",
+				req.RepositoryName,
+				err,
+			)
+		}
 	}
 
 	return &CreateResult{

@@ -535,3 +535,208 @@ func TestClient_GetRepository_ReturnsErrorForUnexpectedStatus(
 		)
 	}
 }
+
+func TestClient_BranchExists_ReturnsTrueWhenBranchExists(
+	t *testing.T,
+) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					t.Errorf(
+						"method = %q, want %q",
+						r.Method,
+						http.MethodGet,
+					)
+				}
+
+				expectedPath := "/platform/_apis/git/repositories/repository-id/refs"
+
+				if r.URL.Path != expectedPath {
+					t.Errorf(
+						"path = %q, want %q",
+						r.URL.Path,
+						expectedPath,
+					)
+				}
+
+				if got := r.URL.Query().Get("filter"); got != "heads/main" {
+					t.Errorf(
+						"filter = %q, want %q",
+						got,
+						"heads/main",
+					)
+				}
+
+				if got := r.URL.Query().Get("api-version"); got != "7.1" {
+					t.Errorf(
+						"api-version = %q, want %q",
+						got,
+						"7.1",
+					)
+				}
+
+				w.Header().Set(
+					"Content-Type",
+					"application/json",
+				)
+
+				_, _ = w.Write(
+					[]byte(`{
+						"count": 1,
+						"value": [
+							{
+								"name": "refs/heads/main",
+								"objectId": "1234567890abcdef"
+							}
+						]
+					}`),
+				)
+			},
+		),
+	)
+	defer server.Close()
+
+	client := NewClient(
+		server.URL,
+		server.Client(),
+		&fakeTokenProvider{
+			token: "test-token",
+		},
+	)
+
+	exists, err := client.BranchExists(
+		context.Background(),
+		"platform",
+		"repository-id",
+		"main",
+	)
+	if err != nil {
+		t.Fatalf(
+			"BranchExists() returned unexpected error: %v",
+			err,
+		)
+	}
+
+	if !exists {
+		t.Error(
+			"BranchExists() = false, want true",
+		)
+	}
+}
+
+func TestClient_BranchExists_ReturnsFalseWhenBranchDoesNotExist(
+	t *testing.T,
+) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set(
+					"Content-Type",
+					"application/json",
+				)
+
+				_, _ = w.Write(
+					[]byte(`{
+						"count": 0,
+						"value": []
+					}`),
+				)
+			},
+		),
+	)
+	defer server.Close()
+
+	client := NewClient(
+		server.URL,
+		server.Client(),
+		&fakeTokenProvider{
+			token: "test-token",
+		},
+	)
+
+	exists, err := client.BranchExists(
+		context.Background(),
+		"platform",
+		"repository-id",
+		"main",
+	)
+	if err != nil {
+		t.Fatalf(
+			"BranchExists() returned unexpected error: %v",
+			err,
+		)
+	}
+
+	if exists {
+		t.Error(
+			"BranchExists() = true, want false",
+		)
+	}
+}
+
+func TestClient_BranchExists_ReturnsErrorForUnexpectedStatus(
+	t *testing.T,
+) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set(
+					"Content-Type",
+					"application/json",
+				)
+
+				w.WriteHeader(
+					http.StatusInternalServerError,
+				)
+
+				_, _ = w.Write(
+					[]byte(`{
+						"message": "azure devops unavailable"
+					}`),
+				)
+			},
+		),
+	)
+	defer server.Close()
+
+	client := NewClient(
+		server.URL,
+		server.Client(),
+		&fakeTokenProvider{
+			token: "test-token",
+		},
+	)
+
+	exists, err := client.BranchExists(
+		context.Background(),
+		"platform",
+		"repository-id",
+		"main",
+	)
+
+	if err == nil {
+		t.Fatal(
+			"BranchExists() error = nil, want error",
+		)
+	}
+
+	if exists {
+		t.Error(
+			"BranchExists() = true, want false",
+		)
+	}
+
+	expected := "branch lookup failed: status 500"
+
+	if !strings.Contains(
+		err.Error(),
+		expected,
+	) {
+		t.Errorf(
+			"error = %q, want to contain %q",
+			err,
+			expected,
+		)
+	}
+}

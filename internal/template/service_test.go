@@ -57,7 +57,7 @@ func TestService_Load_LoadsSelectedTemplate(
 		root,
 	)
 
-	files, err := service.Load(
+	rendered, err := service.Load(
 		"dotnet-api",
 		map[string]string{
 			"SERVICE_NAME": "payments-api",
@@ -69,6 +69,8 @@ func TestService_Load_LoadsSelectedTemplate(
 			err,
 		)
 	}
+
+	files := rendered.Files
 
 	if len(files) != 1 {
 		t.Fatalf(
@@ -185,7 +187,7 @@ func TestService_Load_SelectsRequestedTemplate(
 		root,
 	)
 
-	files, err := service.Load(
+	rendered, err := service.Load(
 		"react-app",
 		map[string]string{
 			"SERVICE_NAME": "customer-portal",
@@ -197,6 +199,7 @@ func TestService_Load_SelectsRequestedTemplate(
 			err,
 		)
 	}
+	files := rendered.Files
 
 	if len(files) != 1 {
 		t.Fatalf(

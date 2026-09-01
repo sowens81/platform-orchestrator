@@ -8,6 +8,23 @@ import (
 	templatepkg "github.com/sowens81/platform-orchestrator/internal/template"
 )
 
+type fakeEmptyServiceRegistrationStore struct{}
+
+func (s *fakeEmptyServiceRegistrationStore) Get(
+	_ context.Context,
+	_ string,
+	_ string,
+) (ServiceRegistration, bool, error) {
+	return ServiceRegistration{}, false, nil
+}
+
+func (s *fakeEmptyServiceRegistrationStore) Save(
+	_ context.Context,
+	_ ServiceRegistration,
+) error {
+	return nil
+}
+
 type fakeTemplateService struct {
 	templateName string
 	values       map[string]string
@@ -15,14 +32,20 @@ type fakeTemplateService struct {
 	err          error
 }
 
-func (f *fakeTemplateService) Load(
+func (s *fakeTemplateService) Load(
 	name string,
 	values map[string]string,
-) ([]templatepkg.TemplateFile, error) {
-	f.templateName = name
-	f.values = values
+) (templatepkg.RenderedTemplate, error) {
+	s.templateName = name
+	s.values = values
 
-	return f.files, f.err
+	if s.err != nil {
+		return templatepkg.RenderedTemplate{}, s.err
+	}
+
+	return templatepkg.RenderedTemplate{
+		Files: s.files,
+	}, nil
 }
 
 type fakeRepositoryProvider struct {
@@ -53,6 +76,15 @@ func (f *fakeRepositoryProvider) CreateRepository(
 	f.repositoryName = name
 
 	return f.repository, f.createErr
+}
+
+func (p *fakeRepositoryProvider) BranchExists(
+	_ context.Context,
+	_ string,
+	_ string,
+	_ string,
+) (bool, error) {
+	return false, nil
 }
 
 func (f *fakeRepositoryProvider) PushFiles(
@@ -129,7 +161,7 @@ func TestService_Create_LoadsRequestedTemplate(t *testing.T) {
 	pipelineProvider := &fakePipelineProvider{
 		pipeline: Pipeline{
 			ID:   42,
-			Name: "payments-api-ci",
+			Name: "payments-api-build",
 		},
 	}
 
@@ -137,6 +169,7 @@ func TestService_Create_LoadsRequestedTemplate(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -197,7 +230,7 @@ func TestService_Create_CreatesRepository(t *testing.T) {
 	pipelineProvider := &fakePipelineProvider{
 		pipeline: Pipeline{
 			ID:   42,
-			Name: "payments-api-ci",
+			Name: "payments-api-build",
 		},
 	}
 
@@ -205,6 +238,7 @@ func TestService_Create_CreatesRepository(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -267,7 +301,7 @@ func TestService_Create_PushesRenderedTemplateFiles(t *testing.T) {
 	pipelineProvider := &fakePipelineProvider{
 		pipeline: Pipeline{
 			ID:   42,
-			Name: "payments-api-ci",
+			Name: "payments-api-build",
 		},
 	}
 
@@ -275,6 +309,7 @@ func TestService_Create_PushesRenderedTemplateFiles(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -350,7 +385,7 @@ func TestService_Create_CreatesPipeline(t *testing.T) {
 	pipelineProvider := &fakePipelineProvider{
 		pipeline: Pipeline{
 			ID:   42,
-			Name: "payments-api-ci",
+			Name: "payments-api-build",
 		},
 	}
 
@@ -358,6 +393,7 @@ func TestService_Create_CreatesPipeline(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -385,11 +421,11 @@ func TestService_Create_CreatesPipeline(t *testing.T) {
 		)
 	}
 
-	if pipelineProvider.pipelineName != "payments-api-ci" {
+	if pipelineProvider.pipelineName != "payments-api-build" {
 		t.Errorf(
 			"pipeline name = %q, want %q",
 			pipelineProvider.pipelineName,
-			"payments-api-ci",
+			"payments-api-build",
 		)
 	}
 
@@ -414,6 +450,7 @@ func TestService_Create_WrapsTemplateLoadError(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -434,7 +471,7 @@ func TestService_Create_WrapsTemplateLoadError(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 
-	want := `load repository template "dotnet-api": unresolved template token: __TEAM_NAME__`
+	want := `load template "dotnet-api": unresolved template token: __TEAM_NAME__`
 
 	if err.Error() != want {
 		t.Errorf(
@@ -473,6 +510,7 @@ func TestService_Create_WrapsRepositoryCreationError(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -540,6 +578,7 @@ func TestService_Create_WrapsPushFilesError(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -604,6 +643,7 @@ func TestService_Create_WrapsPipelineCreationError(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -624,7 +664,7 @@ func TestService_Create_WrapsPipelineCreationError(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 
-	want := `create pipeline "payments-api-ci": pipeline permission denied`
+	want := `create build pipeline for repository "payments-api": pipeline permission denied`
 
 	if err.Error() != want {
 		t.Errorf(
@@ -660,7 +700,7 @@ func TestService_Create_ReturnsRepositoryAndPipelineDetails(t *testing.T) {
 	pipelineProvider := &fakePipelineProvider{
 		pipeline: Pipeline{
 			ID:   42,
-			Name: "payments-api-ci",
+			Name: "payments-api-build",
 		},
 	}
 
@@ -668,6 +708,7 @@ func TestService_Create_ReturnsRepositoryAndPipelineDetails(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -719,11 +760,11 @@ func TestService_Create_ReturnsRepositoryAndPipelineDetails(t *testing.T) {
 		)
 	}
 
-	if result.Pipeline.Name != "payments-api-ci" {
+	if result.Pipeline.Name != "payments-api-build" {
 		t.Errorf(
 			"pipeline name = %q, want %q",
 			result.Pipeline.Name,
-			"payments-api-ci",
+			"payments-api-build",
 		)
 	}
 }
@@ -751,6 +792,7 @@ func TestService_Create_ReturnsErrorWhenPipelineYamlIsMissing(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := CreateRequest{
@@ -802,6 +844,7 @@ func TestService_Create_ReturnsErrorWhenTemplateIsEmpty(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := validCreateRequest()
@@ -855,6 +898,7 @@ func TestService_Create_ReturnsErrorWhenPipelineYamlIsEmpty(t *testing.T) {
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := validCreateRequest()
@@ -908,6 +952,7 @@ func TestService_Create_ReturnsErrorWhenPipelineYamlContainsOnlyWhitespace(t *te
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := validCreateRequest()
@@ -965,6 +1010,7 @@ func TestService_Create_ReturnsErrorWhenTemplateContainsDuplicatePaths(t *testin
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := validCreateRequest()
@@ -1018,6 +1064,7 @@ func TestService_Create_ReturnsErrorWhenTemplateContainsEmptyFilePath(t *testing
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := validCreateRequest()
@@ -1071,6 +1118,7 @@ func TestService_Create_ReturnsErrorWhenTemplateContainsNonAbsoluteFilePath(t *t
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := validCreateRequest()
@@ -1124,6 +1172,7 @@ func TestService_Create_ReturnsErrorWhenTemplateContainsPathTraversal(t *testing
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := validCreateRequest()
@@ -1177,6 +1226,7 @@ func TestService_Create_ReturnsErrorWhenTemplateContainsNonCanonicalPath(t *test
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := validCreateRequest()
@@ -1230,6 +1280,7 @@ func TestService_Create_ReturnsErrorWhenTemplateContainsRootFilePath(t *testing.
 		templateService,
 		repositoryProvider,
 		pipelineProvider,
+		&fakeEmptyServiceRegistrationStore{},
 	)
 
 	req := validCreateRequest()

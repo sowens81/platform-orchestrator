@@ -17,5 +17,9 @@ spec:
       description: npm package name
       example: customer-portal
 
-  pipeline:
-    path: /.azuredevops/azure-pipelines.yml
+pipelines:
+  build:
+    path: /.azuredevops/azure-pipelines-build.yml
+
+  release:
+    path: /.azuredevops/azure-pipelines-release.yml

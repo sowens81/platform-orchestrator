@@ -329,7 +329,7 @@ spec:
 		templateRoot,
 	)
 
-	files, err := service.Load(
+	rendered, err := service.Load(
 		"go-api",
 		map[string]string{
 			"SERVICE_NAME": "payments-api",
@@ -341,6 +341,7 @@ spec:
 			err,
 		)
 	}
+	files := rendered.Files
 
 	if len(files) != 1 {
 		t.Fatalf(
@@ -440,7 +441,7 @@ spec:
 		templateRoot,
 	)
 
-	files, err := service.Load(
+	rendered, err := service.Load(
 		"dotnet-api",
 		map[string]string{
 			"SERVICE_NAME": "payments-api",
@@ -452,6 +453,7 @@ spec:
 			err,
 		)
 	}
+	files := rendered.Files
 
 	if len(files) != 1 {
 		for _, file := range files {
