@@ -1,0 +1,49 @@
+# @schema
+# type: integer
+# minimum: 1
+# maximum: 20
+# required: true
+# @schema
+# -- Number of application replicas.
+replicaCount: 2
+
+image:
+  # @schema
+  # type: string
+  # required: true
+  # @schema
+  # -- Container image repository.
+  repository: nginx
+
+  # @schema
+  # type: string
+  # @schema
+  # -- Container image tag.
+  tag: "1.27"
+
+  # @schema
+  # enum:
+  #   - Always
+  #   - IfNotPresent
+  #   - Never
+  # @schema
+  # -- Kubernetes image pull policy.
+  pullPolicy: IfNotPresent
+
+service:
+  # @schema
+  # enum:
+  #   - ClusterIP
+  #   - LoadBalancer
+  #   - NodePort
+  # @schema
+  # -- Kubernetes service type.
+  type: ClusterIP
+
+  # @schema
+  # type: integer
+  # minimum: 1
+  # maximum: 65535
+  # @schema
+  # -- HTTP service port.
+  port: 80

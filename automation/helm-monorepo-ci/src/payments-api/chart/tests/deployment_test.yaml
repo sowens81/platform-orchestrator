@@ -1,0 +1,26 @@
+suite: Deployment
+templates:
+  - templates/deployment.yaml
+
+tests:
+  - it: should create a Deployment
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should use configured replica count
+    set:
+      replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: should use configured image
+    set:
+      image.repository: myregistry.azurecr.io/payments-api
+      image.tag: "1.2.3"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "myregistry.azurecr.io/payments-api:1.2.3"
